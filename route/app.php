@@ -17,3 +17,4 @@ Route::get('think', function () {
 Route::resource('user', 'User')->middleware(\app\middleware\JWT::class);
 Route::get('hello/:name', 'index/hello');
 Route::post('login', 'login/login');
+Route::get('getCode', 'login/getCode');

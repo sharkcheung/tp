@@ -4,6 +4,7 @@ namespace app\model;
 
 use think\Model;
 use thans\jwt\facade\JWTAuth;
+use think\facade\Cache;
 
 class User extends Model
 {
@@ -70,5 +71,13 @@ class User extends Model
         return [[
             'token' => 'Bearer ' . $token
         ], config('code.success'), '登录成功！'];
+    }
+    public function getCode($id)
+    {
+        $code = random(20, 'allWithSymbol');
+        Cache::set($id, $code, 60);
+        return [[
+            'code' => $code
+        ], config('code.success'), ''];
     }
 }

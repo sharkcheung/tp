@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <!-- import CSS -->
+  <link rel="stylesheet" href="https://cdn.bootcss.com/element-ui/2.15.6/theme-chalk/index.css">
+  <link rel="stylesheet" href="https://at.alicdn.com/t/c/font_3692636_06v8wucu7msc.css">
+  <link rel="stylesheet" href="__STATIC__/css/main.css" />
+</head>
+<body>
+  <div id="app">
+    <el-container style="width:1347px;height: 747px; border: 1px solid #eee;margin: 0 auto;">
+        <el-aside style="width:306px;">
+            <div class="left-main">
+                <div class="left-nav">
+                    <div class="block"><el-avatar shape="square" :size="36" :src="squareUrl"></el-avatar></div>
+                    <div class="nav-icon">
+                        <template v-for="(item, index) in navMenuList">
+                            <el-badge v-if="unReadMsgCount>0&&index===0" :value="unReadMsgCount"><i class="iconfont" :class="item.icon" :title="item.name" :key="`nav-item-${index}`"></i></el-badge>
+                            <i v-else class="iconfont" :class="item.icon" :title="item.name" :key="`nav-item-${index}`"></i>
+                        </template>
+                    </div>
+                    <div class="nav-icon bottom-icon">
+                        <i v-for="(item, index) in bottomMenuList" class="iconfont" :class="item.icon" :title="item.name" :key="`nav-bottom-item-${index}`"></i>
+                    </div>
+                </div>
+                <div class="right-area">
+                    <div class="top-tool">
+                        <el-input
+                            class="search-input"
+                            size="mini"
+                            placeholder="搜索"
+                            prefix-icon="el-icon-search"
+                            v-model="search">
+                        </el-input>
+                        <div class="icon-bg"><i class="iconfont el-icon-ali-jiahao_o"></i></div>
+                    </div>
+                    <el-scrollbar>
+                        <ul class="chat-list">
+                            <li v-for="(item, index) in chatList" :key="`chat-list-item-${index}`" @click="chooseChat(item)" :class="{ 'active': currentItem&&currentItem.chatId === item.chatId }">
+                                <p class="msg-left">
+                                    <el-badge v-if="item.unReadMsgCount>0" :is-dot="item.msg_no_disturb&&item.unReadMsgCount>0" :value="item.msg_no_disturb ? '' : item.unReadMsgCount"><el-image
+                                    style="width: 42px; height: 42px"
+                                    :src="item.avatar"
+                                    fit="fill"></el-image></el-badge>
+                                    <el-image
+                                        v-else
+                                        style="width: 42px; height: 42px"
+                                        :src="item.avatar"
+                                        fit="fill"></el-image>
+                                </p>
+                                <p class="msg-right">
+                                    <span><b>{{ item.name }}</b>{{ item.lastMsg }}</span>
+                                    <span>{{ item.lastMsgTime }}</span>
+                                </p>
+                            </li>
+                        </ul>
+                    </el-scrollbar>
+                </div>
+            </div>
+        </el-aside>
+        <el-main>
+            <div class="title-bar" v-if="Object.keys(currentItem).length>0">
+                <div class="title">
+                    <p>{{ currentItem.remark ? currentItem.remark : currentItem.name }}</p>
+                    {{ currentItem.remark ? currentItem.name : '' }}
+                </div>
+                <div class="right-icon">
+                    <i class="el-icon-ali-gengduo-hengxiang iconfont"></i>
+                </div>
+            </div>
+            <div class="chat-msg-window" v-if="Object.keys(currentItem).length>0">
+                <el-scrollbar style="height: 476px;" ref="myScrollbar">
+                    <div class="msg-item" v-for="(item, index) in chatMsgList" :key="`msg-item-${index}`">
+                        <p v-if="" class="msg-time">{{ item.msgTime }}</p>
+                        <div class="msg-body" :class="{ 'msg-body-self': item.from_uid==uid }">
+                            <el-image
+                                style="width: 35px; height: 35px;margin-top: 6px;border-radius: 4px;"
+                                :src="item.avatar"
+                                fit="fill"></el-image>
+                            <div class="msg-item-right">
+                                <span v-if="item.from_uid!==uid">{{ item.remark ? item.remark : item.from_nick_name }}</span>
+                                <div class="msg-content"><p><span :class="{ 'triangle': item.msg.length>38 }"></span>{{ item.msg }}</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </el-scrollbar>
+            </div>
+            <div class="chat-operation-window" v-if="Object.keys(currentItem).length>0">
+                <div class="chat-msg-box">
+                    <div class="chat-tool-bar"><p><i v-for="(item, index) in toolLeftList" class="iconfont" :class="item.icon" :title="item.name" :key="index"></i></p><p><i v-for="(item, index) in toolRightList" class="iconfont" :class="item.icon" :title="item.name" :key="`tool-item-${index}`"></i></p></div>
+                    <div class="chat-msg-text"><el-input
+                        type="textarea"
+                        :rows="4"
+                        :autofocus="true"
+                        placeholder=""
+                        v-model="msgContent">
+                      </el-input></div>
+                </div>
+                <div class="chat-send-btn" @click="sendMsg">发送(S)</div>
+            </div>
+        </el-main>
+    </el-container>
+  </div>
+</body>
+  <!-- import Vue before Element -->
+  <script src="https://cdn.bootcss.com/vue/2.6.11/vue.min.js"></script>
+  <script src="https://cdn.bootcss.com/element-ui/2.15.6/index.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      data: function() {
+        return { search: '', visible: false, ws: null, squareUrl: "https://www.gx8899.com/uploads/allimg/171105/3-1G105111113.jpg", navMenuList: [], bottomMenuList: [], chatList: [], currentItem: {}, chatMsgList: [], uid: 'wxid_2f0tluz39w1221', toolLeftList: [], toolRightList: [], msgContent: '' }
+      },
+      created() {
+        this.navMenuList = [ {
+            icon: 'el-icon-ali-wechat', name: '聊天'
+        },{
+            icon: 'el-icon-ali-tongxunlu', name: '通讯录'
+        },{
+            icon: 'el-icon-ali-shoucang', name: '收藏'
+        },{
+            icon: 'el-icon-ali-folder-line', name: '聊天文件'
+        },{
+            icon: 'el-icon-ali-pengyouquan-01', name: '朋友圈'
+        },{
+            icon: 'el-icon-ali-shipin', name: '视频号'
+        },{
+            icon: 'el-icon-ali-kanyikan', name: '看一看'
+        },{
+            icon: 'el-icon-ali-souyisou', name: '搜一搜'
+        } ];
+        this.bottomMenuList = [ { icon: 'el-icon-ali-xiaochengxu', name: '小程序面板' }, { icon: 'el-icon-ali-shouji_o', name: '手机' }, { icon: 'el-icon-ali-gengduo', name: '更多' } ]
+        this.toolLeftList = [ { icon: 'el-icon-ali-smiling', name: '表情' }, { icon: 'el-icon-ali-folder-line', name: '发送文件' }, { icon: 'el-icon-ali-jietu1', name: '截图(Alt+A)' }, { icon: 'el-icon-ali-chat', name: '聊天记录' } ]
+        this.toolRightList = [ { icon: 'el-icon-ali-zhibo', name: '直播' }, { icon: 'el-icon-ali-iconfontdianhua2', name: '语音聊天' } ]
+        this.chatList = [ 
+            { avatar: 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png', id: 1, name: '深圳电信', type: 'mp', lastMsg: '你要的政府补贴终极预告...', lastMsgTime: '22/9/30', chatId: 'wxid_2f0tluz39w1222', remark: '', unReadMsgCount: 1, msg_no_disturb: 1 }, 
+            { avatar: 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png', id: 2, name: '文件传输助手', type: 'fileHelper', lastMsg: '[图片]', lastMsgTime: '22/9/30', chatId: 'wxid_2f0tluz39w1220', remark: '', unReadMsgCount: 0, msg_no_disturb: 0 } , 
+            { avatar: 'http://wx.qlogo.cn/mmopen/QVhabSffBM8ctw5OanO0yfjcgHdYuIP7wAZTJVuYVFxwjfDicBLNUibZibAIYDia8KrwlPJiauEwc32zn6XUGKfD8J0ibjvntEZl4G/64', id: 3, name: '小班1班·班级群', type: 'group', lastMsg: '可乐：哈哈！都是家长们帮老师们做好了铺垫呀', lastMsgTime: '22/9/30', chatId: 'wxid_2f0tluz39w1210', remark: '碧头第一幼儿园小一班', unReadMsgCount: 10, msg_no_disturb: 0 }  , 
+            { avatar: 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png', id: 4, name: '饺子先森', type: 'single', lastMsg: '在打包', lastMsgTime: '22/9/30', chatId: 'wxid_2f0tluz39w1230', remark: '', unReadMsgCount: 10, msg_no_disturb: 1 } 
+        ]
+        this.ws = new WebSocket("ws://localhost:2346");
+        let __this = this;
+        this.ws.onopen = function() {
+            console.info("webSocket通道建立成功！！！");
+            __this.ws.send('hello');
+            console.log("给服务端发送一个字符串：hello");
+        };
+        this.ws.onmessage = function(even) {
+            console.log("收到服务端的消息：" + even.data);
+        };
+      },
+      computed: {
+        unReadMsgCount() {
+            let cnt = 0;
+            let count = this.chatList.map(item=>{
+                if(item.msg_no_disturb==0) {
+                    return cnt = cnt + item.unReadMsgCount;
+                }
+            })
+            return cnt;
+        }
+      },
+      methods: {
+        sendMsg() {
+            if(this.msgContent === '') {
+                this.$message({
+                    message: '不能发送空白消息',
+                    type: 'warning'
+                });
+            }
+            else {
+                let msg = {
+                    avatar: this.squareUrl,
+                    from_nick_name: '',
+                    type: 'text',
+                    msg: this.msgContent,
+                    msgTime: '22/10/10',
+                    from_uid: this.uid,
+                    remark: ''
+                };
+                this.chatMsgList.push(msg)
+                this.$nextTick(() => {
+                    this.$refs['myScrollbar'].wrap.scrollTop = this.$refs['myScrollbar'].wrap.scrollHeight;
+                })
+                this.ws.send(JSON.stringify(msg));
+                console.log(this.chatMsgList);
+                this.msgContent = '';
+            }
+        },
+        chooseChat(item) {
+            this.currentItem = item
+            console.log(this.currentItem)
+            this.updateChatList(item);
+            this.chatMsgList = [ 
+                { avatar: 'http://css.175hd.com/pic/37f0b8146f6a1e96d59c0580d35d46aa.jpg', from_nick_name: '王文兮妈妈', type: 'mp', msg: '还可以', msgTime: '22/9/30', from_uid: 'wxid_2f0tluz39w1222', remark: '王文兮妈妈' }, 
+                { avatar: 'https://tupian.qqw21.com/article/UploadPic/2015-2/201522420161665793.jpg', from_nick_name: '庄老师', type: 'mp', msg: '各位班主任：下午好!因满京华云著一期B1栋目前需采取临时管控，请各班快速核查家住B1栋的学生且中午回家吃饭的学生，立即通知家长接回！@所有人 请住以上地址的家长，马上联系我。', msgTime: '22/9/30', from_uid: 'wxid_2f0tluz39w1222', remark: '庄老师' }, 
+                { avatar: 'http://img.duoziwang.com/2018/04/240919116094.jpg', from_nick_name: '柳熙妈妈', type: 'mp', msg: '感觉怎么样呢', msgTime: '22/9/30', from_uid: 'wxid_2f0tluz39w1222', remark: '柳熙妈妈' }, 
+                { avatar: this.squareUrl, from_nick_name: '', type: 'mp', msg: '感觉不怎么样呢', msgTime: '22/9/30', from_uid: 'wxid_2f0tluz39w1221', remark: '' }, 
+                { avatar: 'http://img.duoziwang.com/2018/04/240919116094.jpg', from_nick_name: '柳熙妈妈', type: 'mp', msg: '我最近才在找午托', msgTime: '22/9/30', from_uid: 'wxid_2f0tluz39w1222', remark: '柳熙妈妈' }, 
+            ]
+            this.$nextTick(() => {
+                this.$refs['myScrollbar'].wrap.scrollTop = this.$refs['myScrollbar'].wrap.scrollHeight;
+            })
+        },
+        updateChatList(item) {
+            let list = this.chatList.map(it=>{
+                if(item.id == it.id) {
+                    item.unReadMsgCount = 0;
+                }
+            })
+        }
+      },
+    })
+  </script>
+</html>

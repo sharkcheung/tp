@@ -24,4 +24,15 @@ class Login
         [$ret, $code, $msg] = $user->login($data);
         return response($ret, $code, $msg);
     }
+    public function getCode($id = '')
+    {
+        if (!empty($id)) {
+            $user = new UserModel();
+
+            [$ret, $code, $msg] = $user->getCode($id);
+            return response($ret, $code, $msg);
+        } else {
+            return response([], config('code.error'), '参数不正确');
+        }
+    }
 }
